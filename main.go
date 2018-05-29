@@ -109,7 +109,13 @@ func updateTime(deltaTime float64){
 }
 
 func updatePosition(deltaTime float64){
-
+	point := box2d.MakeB2Vec2(0, 0)
+	for _,value := range ships {
+		force := box2d.MakeB2Vec2(0, settings.PHYSICS_FORCE*deltaTime)
+		nforce := box2d.MakeB2Vec2(0, settings.PHYSICS_FORCE*deltaTime*-1)
+		if (value.Movement.Up) {value.Transform.ApplyForce(force,point, true)}
+		if (value.Movement.Down) {value.Transform.ApplyForce(nforce,point, true)}
+	}
 }
 
 func generateDust(){

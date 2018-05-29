@@ -45,11 +45,11 @@ type Alert struct {
 }
 
 type Movement struct {
-	left bool
-	right bool
-	up bool
-	down bool
-	shoot bool
+	Left bool
+	Right bool
+	Up bool
+	Down bool
+	Shoot bool
 }
 
 func ConvertToClientShip(ship *PlayerShip) ClientShip{
