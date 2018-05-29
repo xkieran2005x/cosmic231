@@ -113,11 +113,21 @@ func updatePosition(deltaTime float64){
 	for _,value := range ships {
 		force := box2d.MakeB2Vec2(0, settings.PHYSICS_FORCE*deltaTime)
 		nforce := box2d.MakeB2Vec2(0, settings.PHYSICS_FORCE*deltaTime*-1)
-		if (value.Movement.Up) {value.Transform.ApplyForce(force,point, true)}
-		if (value.Movement.Down) {value.Transform.ApplyForce(nforce,point, true)}
+		if value.Movement.Up {value.Transform.ApplyForce(force,point, true)}
+		if value.Movement.Down {value.Transform.ApplyForce(nforce,point, true)}
 	}
 }
 
 func generateDust(){
-
+	for i := 0; i < settings.AMOUNT_OF_DUST; i++ {
+		/*
+		x := math.Random() * (500 * RENDER_SIZE - -500 * RENDER_SIZE) + -500 * RENDER_SIZE;
+		y := math. * (500 * RENDER_SIZE - -500 * RENDER_SIZE) + -500 * RENDER_SIZE;
+		let transform = new p2.Body({ mass: 0, position: [x, y] });
+	transform.addShape(new p2.Circle({ sensor: true, radius: RENDER_SIZE }));
+	transform.motionState = p2.Body.STATIC;
+	dust[i] = { size: 15, transform: transform };
+	world.addBody(dust[i].transform);
+		*/
+	}
 }
