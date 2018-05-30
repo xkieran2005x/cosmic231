@@ -126,14 +126,19 @@ func updateTime(deltaTime float64){
 	if time < 0{
 		if lobby{
 			time =settings.GAME_TIME
-			generateDust()
 			lobby = !lobby
 			generateDust()
 			log.Println("Game started")
 		} else {
 			time = settings.LOBBY_TIME
 			lobby = !lobby
-			dust= dust[:0] //Dust cleanup
+			
+			//Dust cleanup
+			for _,dust := range dust{
+				world.DestroyBody(dust.Transform)
+			}
+			dust= dust[:0]
+
 			log.Println("Game ended")
 		}
 	}
@@ -146,6 +151,8 @@ func updatePosition(deltaTime float64){
 		nforce := box2d.MakeB2Vec2(0, settings.PHYSICS_FORCE*deltaTime*-1)
 		if value.Movement.Up {value.Transform.ApplyForce(force,point, true)}
 		if value.Movement.Down {value.Transform.ApplyForce(nforce,point, true)}
+		if value.Movement.Left {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE*-1)}
+		if value.Movement.Left {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE)}
 	}
 }
 
@@ -164,3 +171,4 @@ func generateDust(){
 	}
 	clientDust = cosmicStruct.GenerateClientDust(&dust)
 }
+
