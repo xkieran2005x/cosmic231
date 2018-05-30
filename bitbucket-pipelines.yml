@@ -16,11 +16,13 @@ pipelines:
           - ls
           - export GOPATH=`pwd`  
           - mkdir src
-          - mv src
+          - mv * .[^.]* src
+          - cd src
           - ls
           - echo $PWD
           - mkdir cosmicio
-          - mv cosmicio
+          - mv * .[^.]* cosmicio
+          - ls
           - go get -v ./...
           - go build -v
           - go test -v
