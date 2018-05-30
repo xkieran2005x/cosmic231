@@ -12,7 +12,7 @@ pipelines:
           - PACKAGE_PATH="\${GOPATH}/src/bitbucket.org/\${BITBUCKET_REPO_OWNER}/\${BITBUCKET_REPO_SLUG}"
           - mkdir -pv "cosmicio"
           - tar -cO --exclude-vcs --exclude=bitbucket-pipelines.yml . | tar -xv -C "cosmicio"
+          - ls
           - cd "cosmicio"
-          - tree
           - go get -v ./...
           - go build -v
