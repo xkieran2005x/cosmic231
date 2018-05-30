@@ -22,8 +22,9 @@ pipelines:
           - ls
           - echo $PWD
           - mkdir cosmicio
-          - mv (cosmicio) cosmicio
+          - mv !(cosmicio) cosmicio
           - ls
+          - cd cosmicio
           - go get -v ./...
           - go build -v
           - go test -v
