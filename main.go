@@ -44,7 +44,8 @@ func game() {
 		bodydef.Type = 0
 		bodydef.Position.Set(2, 4)
 		bodydef.Angle = 0
-
+		collider := box2d.NewB2PolygonShape()
+		collider.SetAsBox(80,240)
 		playerShip := cosmicStruct.PlayerShip{
 			Id:        currentPlayers,
 			Transform: world.CreateBody(&bodydef),
@@ -54,6 +55,7 @@ func game() {
 			SockId:    sock.Id(),
 			Alive:     true,
 		}
+		playerShip.Transform.CreateFixture(collider,1.0)
 		ships = append(ships, playerShip)
 		socks = append(socks, &sock)
 
@@ -172,7 +174,8 @@ func generateDust(){
 		dust = append(dust,cosmicStruct.Dust{
 			Transform: world.CreateBody(&bodydef),
 		})
-		dust[i].Transform.CreateFixture(shape,0.0)
+		fixture := dust[i].Transform.CreateFixture(shape,0.0)
+		fixture.SetSensor(true)
 	}
 	clientDust = cosmicStruct.GenerateClientDust(&dust)
 }
