@@ -9,15 +9,18 @@ pipelines:
     - step:
         script: # Modify the commands below to build your repository.
           - PACKAGE_PATH="${GOPATH}/src/bitbucket.org/${BITBUCKET_REPO_OWNER}/${BITBUCKET_REPO_SLUG}"
-          - mkdir -pv "src/${PACKAGE_PATH}"
-          - tar -cO --exclude-vcs --exclude=bitbucket-pipelines.yml . | tar -xv -C "src/${PACKAGE_PATH}"
-          - echo $PWD
-          - export GOPATH=`pwd`
-          - cd src
-          - echo $PWD
-          - ls
+          - mkdir -pv "${PACKAGE_PATH}"
+          - tar -cO --exclude-vcs --exclude=bitbucket-pipelines.yml . | tar -xv -C "${PACKAGE_PATH}"
           - cd "${PACKAGE_PATH}"
+          - echo $PWD
           - ls
+          - export GOPATH=`pwd`  
+          - mkdir src
+          - mv !(src) src
+          - ls
+          - echo $PWD
+          - mkdir cosmicio
+          - mv !(cosmicio) cosmicio
           - go get -v ./...
           - go build -v
           - go test -v
