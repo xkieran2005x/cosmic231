@@ -10,6 +10,7 @@ import (
 	"math"
 	"cosmicio/jsexec"
 	"math/rand"
+	"fmt"
 )
 
 //Variables
@@ -20,6 +21,7 @@ var world = box2d.MakeB2World(box2d.MakeB2Vec2(0,0))
 var lobby = true
 var time = settings.LOBBY_TIME
 var dust = make([]cosmicStruct.Dust,0)
+var clientDust = make([]cosmicStruct.ClientDust,0)
 
 func main() {
 	game()
@@ -59,6 +61,15 @@ func game() {
 			playerShip.Movement = data
 		})
 
+		sock.On("username",func(data string){
+			log.Println(fmt.Sprintf("Player %s changed username to %s",playerShip.Username,data))
+			playerShip.Username = data
+		})
+
+		sock.On("skin",func(data int){
+			playerShip.SkinId = data
+		})
+
 		//Sync functions
 		syncUI := func(){
 			sock.Emit("ui", cosmicStruct.UIData{
@@ -67,18 +78,35 @@ func game() {
 				Time:  math.Floor(time),
 			})
 		}
+
 		syncShips := func(){
 			sock.Emit("ships",cosmicStruct.ConvertToClientShips(&ships))
+		}
+
+		syncDust := func(){
+			sock.Emit("cosmicDust",clientDust)
 		}
 
 		//Sync timers
 		jsexec.SetInterval(func(){syncUI()},settings.SYNC_UI,true)
 		jsexec.SetInterval(func(){syncShips()},settings.SYNC_UI,true)
+		jsexec.SetInterval(func(){syncDust()},settings.SYNC_DUST,true)
+	})
+
+	//Disconnecting
+	sockets.On("disconnection",func(sock socketio.Socket) {
+		log.Println("Player disconnected:"+sock.Id())
+		//Cleanup array
+		i, err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
+		if err!=nil{
+			panic(err) //Ship not found - something must went really wrong
+		}
+		ships[*i] = ships[len(ships)-1]
+		ships = ships[:len(ships)-1]
 	})
 
 	//Server loop
 	jsexec.SetInterval(func(){update(float64(settings.SERVER_BEAT)/1000)},settings.SERVER_BEAT,false)
-
 
 	http.Handle("/socket.io/",sockets)
 	http.Handle("/",http.FileServer(http.Dir("./local")))
@@ -89,7 +117,6 @@ func game() {
 func update(deltaTime float64) {
 	if !lobby{
 		updatePosition(deltaTime)
-		generateDust()
 	}
 	updateTime(deltaTime)
 }
@@ -101,6 +128,7 @@ func updateTime(deltaTime float64){
 			time =settings.GAME_TIME
 			generateDust()
 			lobby = !lobby
+			generateDust()
 			log.Println("Game started")
 		} else {
 			time = settings.LOBBY_TIME
@@ -134,4 +162,5 @@ func generateDust(){
 			Transform: world.CreateBody(&bodydef),
 		})
 	}
+	clientDust = cosmicStruct.GenerateClientDust(&dust)
 }

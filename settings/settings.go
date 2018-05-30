@@ -15,6 +15,7 @@ const PHYSICS_LASER_FORCE = 500
 
 const SYNC_UI = 1000
 const SYNC_SHIPS = 1000/60
+const SYNC_DUST = 1000/10
 
 
 

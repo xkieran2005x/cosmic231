@@ -2,6 +2,7 @@ package cosmicStruct
 
 import (
 	"github.com/ByteArena/box2d"
+	"errors"
 )
 
 type PlayerShip struct
@@ -57,9 +58,11 @@ type Dust struct {
 }
 
 type ClientDust struct {
-	X int
-	Y int
+	X float64
+	Y float64
+	Size int
 }
+
 func ConvertToClientShip(ship *PlayerShip) ClientShip{
 	return ClientShip{
 		X: ship.Transform.GetPosition().X,
@@ -88,4 +91,25 @@ func ConvertToClientShips(ships *[]PlayerShip) []ClientShip{
 		})
 	}
 	return clientShips
+}
+
+func FindShipBySocketId(ships *[]PlayerShip, socketId string) (*int,error) {
+	for iteration, ship := range *ships {
+		if ship.SockId==socketId{
+			return &iteration,nil
+		}
+	}
+	return nil,errors.New("failed to find ship")
+}
+
+func GenerateClientDust(dust *[]Dust) []ClientDust {
+	clientDust := make([]ClientDust,0,len(*dust))
+	for _,dust := range *dust {
+		clientDust = append(clientDust,ClientDust{
+			X: dust.Transform.GetPosition().X,
+			Y: dust.Transform.GetPosition().Y,
+			Size: 5,
+		})
+	}
+	return clientDust
 }
