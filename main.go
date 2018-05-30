@@ -28,6 +28,7 @@ func main() {
 }
 
 func game() {
+	world.SetContactListener(CollisionListener{})
 	log.Println("Loading game server")
 	sockets,err := socketio.NewServer(nil)
 	if err != nil{
@@ -89,7 +90,7 @@ func game() {
 
 		//Sync timers
 		jsexec.SetInterval(func(){syncUI()},settings.SYNC_UI,true)
-		jsexec.SetInterval(func(){syncShips()},settings.SYNC_SHIPS,true)
+		jsexec.SetInterval(func(){syncShips()},settings.SYNC_SHIPS ,true)
 		jsexec.SetInterval(func(){syncDust()},settings.SYNC_DUST,true)
 	})
 
@@ -154,7 +155,7 @@ func updatePosition(deltaTime float64){
 		if value.Movement.Left {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE*-1)}
 		if value.Movement.Left {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE)}
 	}
-	world.Step(deltaTime,1,1) //Physics update
+	world.Step(deltaTime,8,3) //Physics update
 }
 
 func generateDust(){
@@ -166,9 +167,45 @@ func generateDust(){
 		bodydef.Type = 0
 		bodydef.Position.Set(x, y)
 		bodydef.Angle = 0
+		shape := box2d.MakeB2CircleShape()
+		shape.SetRadius(5)
 		dust = append(dust,cosmicStruct.Dust{
 			Transform: world.CreateBody(&bodydef),
 		})
+		dust[i].Transform.CreateFixture(shape,0.0)
 	}
 	clientDust = cosmicStruct.GenerateClientDust(&dust)
+}
+
+
+//Contact listener
+type CollisionListener struct{}
+
+func (CollisionListener) BeginContact(contact box2d.B2ContactInterface){
+	bodyA := contact.GetFixtureA().GetBody()
+	bodyB := contact.GetFixtureB().GetBody()
+	res1 := cosmicStruct.FindShipByTransform(&ships,bodyA)
+	if res1 != nil {
+		i := cosmicStruct.FindDustByTransform(&dust,bodyB)
+		dust[*i] = dust[len(ships)-1]
+		dust = dust[:len(ships)-1]
+		res1.Score++
+	} else {
+		res2 := cosmicStruct.FindShipByTransform(&ships,bodyB)
+		i := cosmicStruct.FindDustByTransform(&dust,bodyA)
+		dust[*i] = dust[len(ships)-1]
+		dust = dust[:len(ships)-1]
+		res2.Score++
+	}
+
+}
+func (CollisionListener) EndContact(contact box2d.B2ContactInterface){
+
+}
+
+func (CollisionListener) PreSolve(contact box2d.B2ContactInterface,oldManifold box2d.B2Manifold){
+
+}
+func (CollisionListener) PostSolve(contact box2d.B2ContactInterface,impulse *box2d.B2ContactImpulse){
+
 }

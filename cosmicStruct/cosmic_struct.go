@@ -113,3 +113,21 @@ func GenerateClientDust(dust *[]Dust) []ClientDust {
 	}
 	return clientDust
 }
+
+func FindShipByTransform(ships *[]PlayerShip,transform *box2d.B2Body) *PlayerShip{
+	for _,ship :=range *ships{
+		if ship.Transform == transform{
+			return &ship
+		}
+	}
+	return nil
+}
+
+func FindDustByTransform(dusts *[]Dust,transform *box2d.B2Body) *int{
+	for i,dust :=range *dusts{
+		if dust.Transform == transform{
+			return &i
+		}
+	}
+	return nil
+}
