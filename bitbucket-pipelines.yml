@@ -14,14 +14,15 @@ pipelines:
           - cd "${PACKAGE_PATH}"
           - echo $PWD
           - ls
+          - shopt -s extglob
           - export GOPATH=`pwd`  
           - mkdir src
-          - mv * .[^.]* src
+          - mv !(src) src
           - cd src
           - ls
           - echo $PWD
           - mkdir cosmicio
-          - mv * .[^.]* cosmicio
+          - mv (cosmicio) cosmicio
           - ls
           - go get -v ./...
           - go build -v
