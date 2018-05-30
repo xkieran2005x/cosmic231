@@ -89,7 +89,7 @@ func game() {
 
 		//Sync timers
 		jsexec.SetInterval(func(){syncUI()},settings.SYNC_UI,true)
-		jsexec.SetInterval(func(){syncShips()},settings.SYNC_UI,true)
+		jsexec.SetInterval(func(){syncShips()},settings.SYNC_SHIPS,true)
 		jsexec.SetInterval(func(){syncDust()},settings.SYNC_DUST,true)
 	})
 
@@ -107,9 +107,6 @@ func game() {
 
 	//Server loop
 	jsexec.SetInterval(func(){update(float64(settings.SERVER_BEAT)/1000)},settings.SERVER_BEAT,false)
-	//Physics loop
-	jsexec.SetInterval(func(){world.Step(settings.PHYSICS_TIMESTEP,1,1)},
-	settings.PHYSICS_TIMESTEP,false)
 
 	http.Handle("/socket.io/",sockets)
 	http.Handle("/",http.FileServer(http.Dir("./local")))
@@ -157,6 +154,7 @@ func updatePosition(deltaTime float64){
 		if value.Movement.Left {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE*-1)}
 		if value.Movement.Left {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE)}
 	}
+	world.Step(deltaTime,1,1) //Physics update
 }
 
 func generateDust(){
