@@ -10,7 +10,7 @@ pipelines:
     - step:
         script: # Modify the commands below to build your repository.
           - PACKAGE_PATH="\${GOPATH}/src/bitbucket.org/\${BITBUCKET_REPO_OWNER}/\${BITBUCKET_REPO_SLUG}"
-          - cp -R PACKAGE_PATH "\${GOPATH}/src/cosmicio"
+          - cp -R "\${GOPATH}/src/bitbucket.org/\${BITBUCKET_REPO_OWNER}/\${BITBUCKET_REPO_SLUG}" "\${GOPATH}/src/cosmicio"
           - cd /
           - ls
           - cd "\${GOPATH}/src/cosmicio"
