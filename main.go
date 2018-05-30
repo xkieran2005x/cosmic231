@@ -107,6 +107,9 @@ func game() {
 
 	//Server loop
 	jsexec.SetInterval(func(){update(float64(settings.SERVER_BEAT)/1000)},settings.SERVER_BEAT,false)
+	//Physics loop
+	jsexec.SetInterval(func(){world.Step(settings.PHYSICS_TIMESTEP,1,1)},
+	settings.PHYSICS_TIMESTEP,false)
 
 	http.Handle("/socket.io/",sockets)
 	http.Handle("/",http.FileServer(http.Dir("./local")))
@@ -132,7 +135,7 @@ func updateTime(deltaTime float64){
 		} else {
 			time = settings.LOBBY_TIME
 			lobby = !lobby
-			
+
 			//Dust cleanup
 			for _,dust := range dust{
 				world.DestroyBody(dust.Transform)
@@ -171,4 +174,3 @@ func generateDust(){
 	}
 	clientDust = cosmicStruct.GenerateClientDust(&dust)
 }
-
