@@ -52,6 +52,14 @@ type Movement struct {
 	Shoot bool
 }
 
+type Dust struct {
+	Transform *box2d.B2Body
+}
+
+type ClientDust struct {
+	X int
+	Y int
+}
 func ConvertToClientShip(ship *PlayerShip) ClientShip{
 	return ClientShip{
 		X: ship.Transform.GetPosition().X,

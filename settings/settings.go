@@ -2,7 +2,7 @@ package settings
 
 const SERVER_BEAT = 10 //Refreshing in ms
 const AMOUNT_OF_DUST = 500 //Amount of dust
-
+const MAP_SIZE = 5;
 const LOBBY_TIME float64 = 15 //Time in lobby
 const GAME_TIME float64 = 60 //Time in game
 

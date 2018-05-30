@@ -1,0 +1,3 @@
+[submodule "client"]
+	path = client
+	url = https://kubastick@bitbucket.org/ykn3m4h/cosmicio-client.git

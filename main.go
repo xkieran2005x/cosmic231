@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"math"
 	"cosmicio/jsexec"
+	"math/rand"
 )
 
 //Variables
@@ -18,6 +19,7 @@ var ships = make([]cosmicStruct.PlayerShip,0)
 var world = box2d.MakeB2World(box2d.MakeB2Vec2(0,0))
 var lobby = true
 var time = settings.LOBBY_TIME
+var dust = make([]cosmicStruct.Dust,0)
 
 func main() {
 	game()
@@ -103,6 +105,7 @@ func updateTime(deltaTime float64){
 		} else {
 			time = settings.LOBBY_TIME
 			lobby = !lobby
+			dust= dust[:0] //Dust cleanup
 			log.Println("Game ended")
 		}
 	}
@@ -120,14 +123,15 @@ func updatePosition(deltaTime float64){
 
 func generateDust(){
 	for i := 0; i < settings.AMOUNT_OF_DUST; i++ {
-		/*
-		x := math.Random() * (500 * RENDER_SIZE - -500 * RENDER_SIZE) + -500 * RENDER_SIZE;
-		y := math. * (500 * RENDER_SIZE - -500 * RENDER_SIZE) + -500 * RENDER_SIZE;
-		let transform = new p2.Body({ mass: 0, position: [x, y] });
-	transform.addShape(new p2.Circle({ sensor: true, radius: RENDER_SIZE }));
-	transform.motionState = p2.Body.STATIC;
-	dust[i] = { size: 15, transform: transform };
-	world.addBody(dust[i].transform);
-		*/
+		//Position generation
+		x := rand.Float64() * (500 * settings.MAP_SIZE - -500 * settings.MAP_SIZE) + -500 * settings.MAP_SIZE
+		y := rand.Float64() * (500 * settings.MAP_SIZE - -500 * settings.MAP_SIZE) + -500 * settings.MAP_SIZE
+		bodydef := box2d.MakeB2BodyDef()
+		bodydef.Type = 0
+		bodydef.Position.Set(x, y)
+		bodydef.Angle = 0
+		dust = append(dust,cosmicStruct.Dust{
+			Transform: world.CreateBody(&bodydef),
+		})
 	}
 }
