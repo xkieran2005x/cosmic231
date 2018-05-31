@@ -44,7 +44,6 @@ func game() {
 	sockets.On("connection",func(sock socketio.Socket) {
 		log.Println("Player connected:" + sock.Id())
 		currentPlayers++
-
 		//Creating body definition
 		bodydef := box2d.MakeB2BodyDef()
 		bodydef.Type = 2
