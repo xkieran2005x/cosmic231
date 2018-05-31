@@ -11,6 +11,7 @@ import (
 	"cosmicio/jsexec"
 	"math/rand"
 	"fmt"
+	time2 "time"
 )
 
 //Variables
@@ -29,7 +30,12 @@ func main() {
 func game() {
 	world.SetContactListener(CollisionListener{})
 	log.Println("Loading game server")
+
+	//Server config
 	sockets,err := socketio.NewServer(nil)
+	sockets.SetPingInterval(time2.Millisecond*250)
+	sockets.SetPingTimeout(time2.Second*1)
+	sockets.SetAllowUpgrades(true)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -115,18 +121,18 @@ func game() {
 		jsexec.SetInterval(func(){syncUI()},settings.SYNC_UI,true)
 		jsexec.SetInterval(func(){syncShips()},settings.SYNC_SHIPS ,true)
 		jsexec.SetInterval(func(){syncDust()},settings.SYNC_DUST,true)
-	})
 
-	//Disconnecting
-	sockets.On("disconnection",func(sock socketio.Socket) {
-		log.Println("Player disconnected:"+sock.Id())
-		//Cleanup array
-		i, err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
-		if err!=nil{
-			panic(err) //Ship not found - something must went really wrong
-		}
-		ships[*i] = ships[len(ships)-1]
-		ships = ships[:len(ships)-1]
+		//Disconnect
+		sock.On("disconnection",func(sock socketio.Socket) {
+			log.Println("Player disconnected:"+sock.Id())
+			//Cleanup array
+			i, err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
+			if err!=nil{
+				panic(err) //Ship not found - something must went really wrong
+			}
+			ships[*i] = ships[len(ships)-1]
+			ships = ships[:len(ships)-1]
+		})
 	})
 
 	//Server loop
