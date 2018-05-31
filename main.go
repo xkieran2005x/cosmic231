@@ -14,7 +14,6 @@ import (
 )
 
 //Variables
-var socks = make([]*socketio.Socket,0)
 var currentPlayers=0;
 var ships = make([]cosmicStruct.PlayerShip,0)
 var world = box2d.MakeB2World(box2d.MakeB2Vec2(0,0))
@@ -38,7 +37,6 @@ func game() {
 	//Connecting
 	sockets.On("connection",func(sock socketio.Socket) {
 		log.Println("Player connected:" + sock.Id())
-		socks = append(socks)
 		currentPlayers++
 
 		//Creating body definition
@@ -70,7 +68,6 @@ func game() {
 		playerShipInt,err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
 		if err != nil {panic(err)}
 		playerShip := &ships[*playerShipInt]
-		socks = append(socks, &sock)
 
 		//Events
 		sock.On("movement",func(data cosmicStruct.Movement){

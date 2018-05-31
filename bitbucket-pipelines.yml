@@ -3,7 +3,7 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can use any Docker image from Docker Hub, or your own container registry, as your build environment.
-image: golang:1.7
+image: golang:1.10.2
 pipelines:
   default:
     - step:
