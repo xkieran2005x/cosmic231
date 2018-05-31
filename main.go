@@ -30,7 +30,7 @@ func game() {
 	world.SetContactListener(CollisionListener{})
 	log.Println("Loading game server")
 	sockets,err := socketio.NewServer(nil)
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -231,9 +231,11 @@ func (CollisionListener) BeginContact(contact box2d.B2ContactInterface){
 	} else {
 		res2 := cosmicStruct.FindShipByTransform(&ships,bodyB)
 		i := cosmicStruct.FindDustByTransform(&dust,bodyA)
-		dust[*i] = dust[len(dust)-1]
-		dust = dust[:len(dust)-1]
-		ships[*res2].Score++
+		if i != nil {
+			dust[*i] = dust[len(dust)-1]
+			dust = dust[:len(dust)-1]
+			ships[*res2].Score++
+		}
 	}
 
 }
