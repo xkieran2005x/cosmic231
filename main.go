@@ -14,7 +14,7 @@ import (
 )
 
 //Variables
-var currentPlayers=0;
+var currentPlayers=0
 var ships = make([]cosmicStruct.PlayerShip,0)
 var world = box2d.MakeB2World(box2d.MakeB2Vec2(0,0))
 var lobby = true
@@ -85,12 +85,23 @@ func game() {
 
 		//Sync functions
 		syncUI := func(){
+			var title string //Page title
+			if lobby {
+				title = "Cosmic - Lobby"
+			} else {
+				title = "Cosmic"
+			}
+
+			var alert cosmicStruct.Alert //Alert in the game
+
 			sock.Emit("ui", cosmicStruct.UIData{
-				Title: "Cosmic",
+				Title: title,
 				Lobby: lobby,
 				Time:  math.Floor(time),
+				Alert: alert,
 			})
 		}
+
 
 		syncShips := func(){
 			sock.Emit("ships",cosmicStruct.ConvertToClientShips(&ships))
