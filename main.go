@@ -40,13 +40,21 @@ func game() {
 		log.Println("Player connected:" + sock.Id())
 		socks = append(socks)
 		currentPlayers++
+
+		//Creating body definition
 		bodydef := box2d.MakeB2BodyDef()
-		bodydef.Type = 0
+		bodydef.Type = 2
 		bodydef.Position.Set(2, 4)
 		bodydef.Angle = 0
+		bodydef.AngularDamping = settings.PHYSICS_ANGULAR_DUMPING
+		bodydef.LinearDamping = settings.PHYSICS_LINEAR_DUMPING
+
+		//Creating collider
 		collider := box2d.NewB2PolygonShape()
-		collider.SetAsBox(80,240)
-		playerShip := cosmicStruct.PlayerShip{
+		collider.SetAsBox(40,120)
+
+		//Creating player ship
+		playerShipTmp := cosmicStruct.PlayerShip{
 			Id:        currentPlayers,
 			Transform: world.CreateBody(&bodydef),
 			Heading:   0,
@@ -55,8 +63,13 @@ func game() {
 			SockId:    sock.Id(),
 			Alive:     true,
 		}
-		playerShip.Transform.CreateFixture(collider,1.0)
-		ships = append(ships, playerShip)
+		playerShipTmp.Transform.CreateFixture(collider,1.0)
+
+		//Getting player references
+		ships = append(ships, playerShipTmp)
+		playerShipInt,err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
+		if err != nil {panic(err)}
+		playerShip := &ships[*playerShipInt]
 		socks = append(socks, &sock)
 
 		//Events
@@ -118,7 +131,7 @@ func game() {
 }
 
 func update(deltaTime float64) {
-	if !lobby{
+	if !lobby{ //Game-only logic
 		updatePosition(deltaTime)
 	}
 	updateTime(deltaTime)
@@ -128,34 +141,36 @@ func updateTime(deltaTime float64){
 	time -= deltaTime
 	if time < 0{
 		if lobby{
+			//Pre-game operations
 			time =settings.GAME_TIME
 			lobby = !lobby
 			generateDust()
 			log.Println("Game started")
 		} else {
+			//Post-game cleanup
 			time = settings.LOBBY_TIME
 			lobby = !lobby
-
 			//Dust cleanup
 			for _,dust := range dust{
 				world.DestroyBody(dust.Transform)
 			}
 			dust= dust[:0]
-
 			log.Println("Game ended")
 		}
 	}
 }
 
 func updatePosition(deltaTime float64){
-	point := box2d.MakeB2Vec2(0, 0)
 	for _,value := range ships {
-		force := box2d.MakeB2Vec2(0, settings.PHYSICS_FORCE*deltaTime)
-		nforce := box2d.MakeB2Vec2(0, settings.PHYSICS_FORCE*deltaTime*-1)
-		if value.Movement.Up {value.Transform.ApplyForce(force,point, true)}
-		if value.Movement.Down {value.Transform.ApplyForce(nforce,point, true)}
+
+		forceDirection := value.Transform.GetWorldVector(box2d.MakeB2Vec2(1,0)) //Forward vector
+		force := box2d.B2Vec2CrossScalarVector(settings.PHYSICS_FORCE,forceDirection) //Forward force
+
+		//Input movement handling
+		if value.Movement.Up {value.Transform.SetLinearVelocity(force)}
+		//if value.Movement.Down {value.Transform.ApplyForce(nforce,point, true)}
 		if value.Movement.Left {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE*-1)}
-		if value.Movement.Left {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE)}
+		if value.Movement.Right {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE)}
 	}
 	world.Step(deltaTime,8,3) //Physics update
 }
@@ -165,10 +180,12 @@ func generateDust(){
 		//Position generation
 		x := rand.Float64() * (500 * settings.MAP_SIZE - -500 * settings.MAP_SIZE) + -500 * settings.MAP_SIZE
 		y := rand.Float64() * (500 * settings.MAP_SIZE - -500 * settings.MAP_SIZE) + -500 * settings.MAP_SIZE
+		//Dust physics body definition
 		bodydef := box2d.MakeB2BodyDef()
 		bodydef.Type = 0
 		bodydef.Position.Set(x, y)
 		bodydef.Angle = 0
+		//Dust collider
 		shape := box2d.MakeB2CircleShape()
 		shape.SetRadius(5)
 		dust = append(dust,cosmicStruct.Dust{
@@ -177,28 +194,38 @@ func generateDust(){
 		fixture := dust[i].Transform.CreateFixture(shape,0.0)
 		fixture.SetSensor(true)
 	}
-	clientDust = cosmicStruct.GenerateClientDust(&dust)
+	updateClientDust()
 }
 
+func updateClientDust(){
+	clientDust = cosmicStruct.GenerateClientDust(&dust)
+}
 
 //Contact listener
 type CollisionListener struct{}
 
 func (CollisionListener) BeginContact(contact box2d.B2ContactInterface){
-	bodyA := contact.GetFixtureA().GetBody()
-	bodyB := contact.GetFixtureB().GetBody()
-	res1 := cosmicStruct.FindShipByTransform(&ships,bodyA)
-	if res1 != nil {
-		i := cosmicStruct.FindDustByTransform(&dust,bodyB)
-		dust[*i] = dust[len(ships)-1]
-		dust = dust[:len(ships)-1]
-		res1.Score++
+	//Get colliding bodies
+	bodyA := contact.GetFixtureA().GetBody() //Dynamic body
+	bodyB := contact.GetFixtureB().GetBody() //Static body
+
+	res1 := cosmicStruct.FindShipByTransform(&ships,bodyA) //Get ship reference
+	if res1 != nil { //Check if it isn't null pointer
+		i := cosmicStruct.FindDustByTransform(&dust,bodyB) //Find dust index reference
+		if i != nil {
+			//Remove dust from array by index
+			dust[*i] = dust[len(dust)-1]
+			dust = dust[:len(dust)-1]
+
+			ships[*res1].Score++
+			updateClientDust()
+		}
 	} else {
 		res2 := cosmicStruct.FindShipByTransform(&ships,bodyB)
 		i := cosmicStruct.FindDustByTransform(&dust,bodyA)
-		dust[*i] = dust[len(ships)-1]
-		dust = dust[:len(ships)-1]
-		res2.Score++
+		dust[*i] = dust[len(dust)-1]
+		dust = dust[:len(dust)-1]
+		ships[*res2].Score++
 	}
 
 }
