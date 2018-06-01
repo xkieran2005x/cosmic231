@@ -188,8 +188,14 @@ func game() {
 
 	//SSL server
 	if len(os.Args)>1 {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/tlsinfo", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "Hello, TLS user! Your config: %+v", r.TLS)
+		})
+		mux.Handle("/socket.io/",sockets)
+		mux.Handle("/",http.FileServer(http.Dir("./local")))
 		log.Println("Server ready [SSL MODE] Domain:",os.Args[1])
-		log.Fatal(http.Serve(autocert.NewListener(os.Args[1]),nil))
+		log.Fatal(http.Serve(autocert.NewListener(os.Args[1]),mux))
 	} else {
 		log.Println("Server ready")
 		log.Fatal(http.ListenAndServe(":3000", nil))
