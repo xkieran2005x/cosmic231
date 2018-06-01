@@ -18,7 +18,8 @@ type PlayerShip struct
 	Cooldown float64
 	SkinId int
 	Movement Movement
-
+	DustPop chan int
+	SyncDust chan bool
 }
 
 type ClientShip struct

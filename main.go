@@ -11,17 +11,20 @@ import (
 	"cosmicio/jsexec"
 	"math/rand"
 	"fmt"
-	time2 "time"
+	"sync"
 )
 
 //Variables
 var currentPlayers=0
 var ships = make([]cosmicStruct.PlayerShip,0)
 var world = box2d.MakeB2World(box2d.MakeB2Vec2(0,0))
+var worldLock = &sync.Mutex{}
 var lobby = true
 var time = settings.LOBBY_TIME
 var dust = make([]cosmicStruct.Dust,0)
 var clientDust = make([]cosmicStruct.ClientDust,0)
+//Channels
+var dustPopChannel = make([]chan int,0)
 
 func main() {
 	game()
@@ -33,8 +36,8 @@ func game() {
 
 	//Server config
 	sockets,err := socketio.NewServer(nil)
-	sockets.SetPingInterval(time2.Millisecond*250)
-	sockets.SetPingTimeout(time2.Second*1)
+	//sockets.SetPingInterval(time2.Millisecond*250)
+	//sockets.SetPingTimeout(time2.Second*1)
 	sockets.SetAllowUpgrades(true)
 	if err != nil {
 		log.Fatal(err)
@@ -56,7 +59,8 @@ func game() {
 		collider := box2d.NewB2PolygonShape()
 		collider.SetAsBox(40,120)
 
-		//Creating player ship
+		//Creating player
+		worldLock.Lock()
 		playerShipTmp := cosmicStruct.PlayerShip{
 			Id:        currentPlayers,
 			Transform: world.CreateBody(&bodydef),
@@ -65,27 +69,36 @@ func game() {
 			Health:    settings.STARTING_HP,
 			SockId:    sock.Id(),
 			Alive:     true,
+			DustPop:   make(chan int),
+			SyncDust:  make(chan bool),
 		}
-		playerShipTmp.Transform.CreateFixture(collider,1.0)
+		playerShipTmp.Transform.CreateFixture(collider,1.0).SetRestitution(0.0) //Setting up collider
+		worldLock.Unlock()
 
 		//Getting player references
 		ships = append(ships, playerShipTmp)
-		playerShipInt,err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
-		if err != nil {panic(err)}
-		playerShip := &ships[*playerShipInt]
 
 		//Events
 		sock.On("movement",func(data cosmicStruct.Movement){
-			playerShip.Movement = data
+			ship,err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
+			if err == nil {
+				ships[*ship].Movement = data
+			}
 		})
 
 		sock.On("username",func(data string){
-			log.Println(fmt.Sprintf("Player %s changed username to %s",playerShip.Username,data))
-			playerShip.Username = data
+			ship,err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
+			if err == nil {
+				log.Println(fmt.Sprintf("Player %s changed username to %s", ships[*ship].Username, data))
+				ships[*ship].Username = data
+			}
 		})
 
 		sock.On("skin",func(data int){
-			playerShip.SkinId = data
+			ship,err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
+			if err == nil {
+				ships[*ship].SkinId = data
+			}
 		})
 
 		//Sync functions
@@ -113,13 +126,43 @@ func game() {
 		}
 
 		syncDust := func(){
-			sock.Emit("cosmicDust",clientDust)
+			ship,err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
+			if err == nil {
+				for {
+					select {
+					case <-ships[*ship].SyncDust:
+						sock.Emit("cosmicDust",clientDust)
+						log.Println("Full dust sync performed")
+					}
+				}
+			}
+		}
+
+		dustPop := func(){
+			ship,err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
+			if err == nil {
+				sock.Emit("cosmicDust",clientDust) //Full sync at go-routine creation time
+				for {
+					select {
+					case dustToPop := <-ships[*ship].DustPop:
+						sock.Emit("dustRemove", dustToPop)
+						log.Println("Dust removed:",dustToPop)
+					}
+				}
+			}
 		}
 
 		//Sync timers
 		jsexec.SetInterval(func(){syncUI()},settings.SYNC_UI,true)
 		jsexec.SetInterval(func(){syncShips()},settings.SYNC_SHIPS ,true)
-		jsexec.SetInterval(func(){syncDust()},settings.SYNC_DUST,true)
+
+		//Async go-routines
+		go syncDust()
+		go dustPop()
+
+		//Full game state sync
+		syncUI()
+		syncShips()
 
 		//Disconnect
 		sock.On("disconnection",func(sock socketio.Socket) {
@@ -185,7 +228,9 @@ func updatePosition(deltaTime float64){
 		if value.Movement.Left {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE*-1)}
 		if value.Movement.Right {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE)}
 	}
-	world.Step(deltaTime,8,3) //Physics update
+	worldLock.Lock()
+	world.Step(deltaTime,10,10) //Physics update
+	worldLock.Unlock()
 }
 
 func generateDust(){
@@ -201,17 +246,33 @@ func generateDust(){
 		//Dust collider
 		shape := box2d.MakeB2CircleShape()
 		shape.SetRadius(5)
+		//Add to world
+		worldLock.Lock()
 		dust = append(dust,cosmicStruct.Dust{
 			Transform: world.CreateBody(&bodydef),
 		})
+		worldLock.Unlock()
 		fixture := dust[i].Transform.CreateFixture(shape,0.0)
 		fixture.SetSensor(true)
 	}
-	updateClientDust()
+	fullsyncClientDust()
 }
 
 func updateClientDust(){
 	clientDust = cosmicStruct.GenerateClientDust(&dust)
+}
+
+func fullsyncClientDust(){
+	updateClientDust()
+	for i,_ :=range ships {
+		ships[i].SyncDust <- true
+	}
+}
+func popClientDust(dustId int){
+	updateClientDust()
+	for i,_ :=range ships {
+		ships[i].DustPop <- dustId
+	}
 }
 
 //Contact listener
@@ -225,13 +286,10 @@ func (CollisionListener) BeginContact(contact box2d.B2ContactInterface){
 	res1 := cosmicStruct.FindShipByTransform(&ships,bodyA) //Get ship reference
 	if res1 != nil { //Check if it isn't null pointer
 		i := cosmicStruct.FindDustByTransform(&dust,bodyB) //Find dust index reference
-		if i != nil {
-			//Remove dust from array by index
-			dust[*i] = dust[len(dust)-1]
-			dust = dust[:len(dust)-1]
-
-			ships[*res1].Score++
-			updateClientDust()
+		if i != nil { //Check if it isn't null pointer to player ship index
+			dust = append(dust[:*i], dust[*i+1:]...) //Remove dust from array by index
+			ships[*res1].Score++ //Add score to ship
+			popClientDust(*i) //Async remove dust from client
 		}
 	} else {
 		res2 := cosmicStruct.FindShipByTransform(&ships,bodyB)
