@@ -14,6 +14,7 @@ import (
 	"sync"
 	"os"
 	"golang.org/x/crypto/acme/autocert"
+	"crypto/tls"
 )
 
 //Variables
@@ -188,14 +189,19 @@ func game() {
 
 	//SSL server
 	if len(os.Args)>1 {
-		mux := http.NewServeMux()
-		mux.HandleFunc("/tlsinfo", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Hello, TLS user! Your config: %+v", r.TLS)
-		})
-		mux.Handle("/socket.io/",sockets)
-		mux.Handle("/",http.FileServer(http.Dir("./local")))
-		log.Println("Server ready [SSL MODE] Domain:",os.Args[1])
-		log.Fatal(http.Serve(autocert.NewListener(os.Args[1]),mux))
+		m := autocert.Manager{
+			Prompt: autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(os.Args[1]),
+			Cache: autocert.DirCache("~/ssl"),
+		}
+		server := & http.Server{
+			Addr: ":443",
+			TLSConfig: &tls.Config{
+				GetCertificate: m.GetCertificate,
+			},
+		}
+		log.Println("Server ready [SSL MODE]:",os.Args[1])
+		log.Fatal(server.ListenAndServeTLS("",""))
 	} else {
 		log.Println("Server ready")
 		log.Fatal(http.ListenAndServe(":3000", nil))
