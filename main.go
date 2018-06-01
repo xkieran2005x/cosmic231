@@ -201,7 +201,8 @@ func game() {
 			},
 		}
 		log.Println("Server ready [SSL MODE]:",os.Args[1])
-		log.Fatal(server.ListenAndServeTLS("",""))
+		log.Fatal(http.ListenAndServe(":80", m.HTTPHandler(nil)))
+		log.Fatal(server.ListenAndServeTLS("",""),)
 	} else {
 		log.Println("Server ready")
 		log.Fatal(http.ListenAndServe(":3000", nil))
