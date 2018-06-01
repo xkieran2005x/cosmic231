@@ -276,11 +276,23 @@ func fullsyncClientDust(){
 		ships[i].SyncDust <- true
 	}
 }
+
 func popClientDust(dustId int){
 	updateClientDust()
 	for i,_ :=range ships {
 		ships[i].DustPop <- dustId
 	}
+}
+
+func laserRaycast(position box2d.B2Vec2,angle float64,f box2d.B2Fixture){
+	p2 := box2d.B2Vec2Add(position, box2d.B2Vec2CrossScalarVector(settings.PHYSICS_RAY_LENGHT,box2d.MakeB2Vec2(math.Sin(angle),math.Cos(angle))))
+	input := box2d.B2RayCastInput{
+		P1:position,
+		P2: p2,
+		MaxFraction: 1,
+	}
+	out := box2d.B2RayCastOutput{}
+	f.RayCast(&out,input,0)
 }
 
 //Contact listener
