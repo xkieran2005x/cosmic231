@@ -13,8 +13,6 @@ import (
 	"fmt"
 	"sync"
 	"os"
-	"golang.org/x/crypto/acme/autocert"
-	"crypto/tls"
 )
 
 //Variables
@@ -188,21 +186,8 @@ func game() {
 	http.Handle("/",http.FileServer(http.Dir("./local")))
 
 	//SSL server
-	if len(os.Args)>1 {
-		m := autocert.Manager{
-			Prompt: autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist(os.Args[1]),
-			Cache: autocert.DirCache("~/ssl"),
-		}
-		server := & http.Server{
-			Addr: ":443",
-			TLSConfig: &tls.Config{
-				GetCertificate: m.GetCertificate,
-			},
-		}
-		log.Println("Server ready [SSL MODE]:",os.Args[1])
-		log.Fatal(http.ListenAndServe(":80", m.HTTPHandler(nil)))
-		log.Fatal(server.ListenAndServeTLS("",""),)
+	if len(os.Args)>2 {
+		log.Fatal(http.ListenAndServeTLS(":443",os.Args[1],os.Args[2],nil))
 	} else {
 		log.Println("Server ready")
 		log.Fatal(http.ListenAndServe(":3000", nil))
