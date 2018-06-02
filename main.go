@@ -65,7 +65,6 @@ func game() {
 		playerShipTmp := cosmicStruct.PlayerShip{
 			Id:        currentPlayers,
 			Transform: world.CreateBody(&bodydef),
-			Heading:   0,
 			Username:  "",
 			Health:    settings.STARTING_HP,
 			SockId:    sock.Id(),
@@ -147,7 +146,6 @@ func game() {
 					select {
 					case dustToPop := <-ships[*ship].DustPop:
 						sock.Emit("dustRemove", dustToPop)
-						log.Println("Dust removed:",dustToPop)
 					}
 				}
 			}
@@ -207,6 +205,7 @@ func updateTime(deltaTime float64){
 		if lobby{
 			//Pre-game operations
 			time =settings.GAME_TIME
+			for i,_ := range ships {ships[i].CleanTurn()} //Clean-up ships
 			lobby = !lobby
 			generateDust()
 			log.Println("Game started")
@@ -287,6 +286,7 @@ func popClientDust(dustId int){
 	for i,_ :=range ships {
 		ships[i].DustPop <- dustId
 	}
+	log.Println("Dust removed:",dustId)
 }
 
 func laserRaycast(position box2d.B2Vec2,angle float64){

@@ -3,13 +3,13 @@ package cosmicStruct
 import (
 	"github.com/ByteArena/box2d"
 	"errors"
+	"cosmicio/settings"
 )
 
 type PlayerShip struct
 {
 	Id int
 	Transform *box2d.B2Body
-	Heading float64
 	Health int
 	Username string
 	Score int
@@ -133,4 +133,10 @@ func FindDustByTransform(dusts *[]Dust,transform *box2d.B2Body) *int{
 		}
 	}
 	return nil
+}
+
+func (ship *PlayerShip) CleanTurn(){
+	ship.Score = 0 //Reset score
+	ship.Transform.SetTransform(box2d.MakeB2Vec2(2,4),0) //Set position to 2,4
+	ship.Health = settings.STARTING_HP //Reset HP
 }
