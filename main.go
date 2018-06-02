@@ -235,6 +235,11 @@ func updatePosition(deltaTime float64){
 		//if value.Movement.Down {value.Transform.ApplyForce(nforce,point, true)}
 		if value.Movement.Left {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE*-1)}
 		if value.Movement.Right {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE)}
+		//Shooting
+		if value.Movement.Shoot {
+			laserRaycast(value.Transform.GetWorldVector(box2d.MakeB2Vec2(2,0)),value.Transform.GetAngle())
+			value.Movement.Shoot=false
+		}
 	}
 	worldLock.Lock()
 	world.Step(deltaTime,10,10) //Physics update
@@ -284,15 +289,12 @@ func popClientDust(dustId int){
 	}
 }
 
-func laserRaycast(position box2d.B2Vec2,angle float64,f box2d.B2Fixture){
+func laserRaycast(position box2d.B2Vec2,angle float64){
 	p2 := box2d.B2Vec2Add(position, box2d.B2Vec2CrossScalarVector(settings.PHYSICS_RAY_LENGHT,box2d.MakeB2Vec2(math.Sin(angle),math.Cos(angle))))
-	input := box2d.B2RayCastInput{
-		P1:position,
-		P2: p2,
-		MaxFraction: 1,
-	}
-	out := box2d.B2RayCastOutput{}
-	f.RayCast(&out,input,0)
+
+	var out box2d.B2RaycastCallback
+	world.RayCast(out,position,p2)
+	log.Println(out)
 }
 
 //Contact listener
@@ -315,9 +317,9 @@ func (CollisionListener) BeginContact(contact box2d.B2ContactInterface){
 		res2 := cosmicStruct.FindShipByTransform(&ships,bodyB)
 		i := cosmicStruct.FindDustByTransform(&dust,bodyA)
 		if i != nil {
-			dust[*i] = dust[len(dust)-1]
-			dust = dust[:len(dust)-1]
-			ships[*res2].Score++
+			dust = append(dust[:*i], dust[*i+1:]...) //Remove dust from array by index
+			ships[*res2].Score++ //Add score to ship
+			popClientDust(*i) //Async remove dust from client
 		}
 	}
 
