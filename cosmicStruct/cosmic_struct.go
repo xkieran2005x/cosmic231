@@ -20,6 +20,7 @@ type PlayerShip struct
 	Movement Movement
 	DustPop chan int
 	SyncDust chan bool
+	AddParticle chan ClientParticle
 }
 
 type ClientShip struct
@@ -62,6 +63,22 @@ type ClientDust struct {
 	X float64
 	Y float64
 	Size int
+}
+
+type Particle struct {
+	Transform *box2d.B2Body
+	Size int
+	Type int
+	Lifetime float64
+	Owner *PlayerShip
+}
+
+type ClientParticle struct {
+	X float64
+	Y float64
+	Size int
+	Type int
+	Lifetime float64
 }
 
 func ConvertToClientShip(ship *PlayerShip) ClientShip{
@@ -116,7 +133,7 @@ func GenerateClientDust(dust *[]Dust) []ClientDust {
 }
 
 ///Returns an ship index in array by transform
-func FindShipByTransform(ships *[]PlayerShip,transform *box2d.B2Body) *int{
+func FindShipByTransform(ships *[]PlayerShip,transform *box2d.B2Body) *int {
 	for r,ship :=range *ships{
 		if ship.Transform == transform{
 			return &r
@@ -126,7 +143,7 @@ func FindShipByTransform(ships *[]PlayerShip,transform *box2d.B2Body) *int{
 }
 
 ///Returns an dust index in array by transform
-func FindDustByTransform(dusts *[]Dust,transform *box2d.B2Body) *int{
+func FindDustByTransform(dusts *[]Dust,transform *box2d.B2Body) *int {
 	for i,dust :=range *dusts{
 		if dust.Transform == transform{
 			return &i
@@ -135,8 +152,18 @@ func FindDustByTransform(dusts *[]Dust,transform *box2d.B2Body) *int{
 	return nil
 }
 
-func (ship *PlayerShip) CleanTurn(){
+func (ship *PlayerShip) CleanTurn() {
 	ship.Score = 0 //Reset score
 	ship.Transform.SetTransform(box2d.MakeB2Vec2(2,4),0) //Set position to 2,4
 	ship.Health = settings.STARTING_HP //Reset HP
+}
+
+func (particle *Particle) ToClientParticle() ClientParticle {
+	return ClientParticle{
+		X: particle.Transform.GetPosition().X,
+		Y: particle.Transform.GetPosition().Y,
+		Size: particle.Size,
+		Lifetime: particle.Lifetime,
+		Type: particle.Type,
+	}
 }

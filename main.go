@@ -24,8 +24,8 @@ var lobby = true
 var time = settings.LOBBY_TIME
 var dust = make([]cosmicStruct.Dust,0)
 var clientDust = make([]cosmicStruct.ClientDust,0)
-//Channels
-var dustPopChannel = make([]chan int,0)
+var particles = make([]*cosmicStruct.Particle,0)
+
 
 func main() {
 	game()
@@ -71,6 +71,7 @@ func game() {
 			Alive:     true,
 			DustPop:   make(chan int),
 			SyncDust:  make(chan bool),
+			AddParticle: make(chan cosmicStruct.ClientParticle),
 		}
 		playerShipTmp.Transform.CreateFixture(collider,1.0).SetRestitution(0.0) //Setting up collider
 		worldLock.Unlock()
@@ -151,6 +152,18 @@ func game() {
 			}
 		}
 
+		syncParticle := func(){
+			ship,err := cosmicStruct.FindShipBySocketId(&ships,sock.Id())
+			if err == nil {
+				for {
+					select {
+					case particle := <-ships[*ship].AddParticle:
+						sock.Emit("addParticle",particle)
+					}
+				}
+			}
+		}
+
 		//Sync timers
 		jsexec.SetInterval(func(){syncUI()},settings.SYNC_UI,true)
 		jsexec.SetInterval(func(){syncShips()},settings.SYNC_SHIPS ,true)
@@ -158,6 +171,7 @@ func game() {
 		//Async go-routines
 		go syncDust()
 		go dustPop()
+		go syncParticle()
 
 		//Full game state sync
 		syncUI()
@@ -224,7 +238,8 @@ func updateTime(deltaTime float64){
 }
 
 func updatePosition(deltaTime float64){
-	for _,value := range ships {
+	//Ships
+	for i,value := range ships {
 
 		forceDirection := value.Transform.GetWorldVector(box2d.MakeB2Vec2(1,0)) //Forward vector
 		force := box2d.B2Vec2CrossScalarVector(settings.PHYSICS_FORCE,forceDirection) //Forward force
@@ -236,8 +251,21 @@ func updatePosition(deltaTime float64){
 		if value.Movement.Right {value.Transform.SetAngularVelocity(settings.PHYSICS_ROTATION_FORCE)}
 		//Shooting
 		if value.Movement.Shoot {
-			laserRaycast(value.Transform.GetWorldVector(box2d.MakeB2Vec2(2,0)),value.Transform.GetAngle())
-			value.Movement.Shoot=false
+			laserShot(value.Transform.GetPosition(),value.Transform.GetAngle(),&i)
+			ships[i].Movement.Shoot=false
+		}
+	}
+	//Particles
+	for i,_ := range particles {
+		particles[i].Lifetime -= deltaTime //Remove deltaTime from particle lifetime
+		if particles[i].Lifetime <= 0 { //If particle should be now 'dead'
+			//Remove particle body
+			worldLock.Lock()
+			world.DestroyBody(particles[i].Transform)
+			worldLock.Unlock()
+			//Remove particle from array
+			particles[i] = particles[len(particles)-1]
+			particles = particles[:len(particles)-1]
 		}
 	}
 	worldLock.Lock()
@@ -289,12 +317,34 @@ func popClientDust(dustId int){
 	log.Println("Dust removed:",dustId)
 }
 
-func laserRaycast(position box2d.B2Vec2,angle float64){
-	p2 := box2d.B2Vec2Add(position, box2d.B2Vec2CrossScalarVector(settings.PHYSICS_RAY_LENGHT,box2d.MakeB2Vec2(math.Sin(angle),math.Cos(angle))))
+func sendParticleToClient(particle *cosmicStruct.Particle){
+	clientParticle := particle.ToClientParticle()
+	for i,_ :=range ships {
+		ships[i].AddParticle <- clientParticle
+	}
+}
 
-	var out box2d.B2RaycastCallback
-	world.RayCast(out,position,p2)
-	log.Println(out)
+func laserShot(position box2d.B2Vec2,angle float64,ownerIndex *int){
+	//Body definition
+	bodyDef := box2d.MakeB2BodyDef()
+	bodyDef.Position = position
+	bodyDef.Angle = angle
+	bodyDef.Bullet = true
+	//Collider definition
+	shape := box2d.MakeB2CircleShape()
+	shape.SetRadius(5)
+
+	worldLock.Lock()
+	laser := cosmicStruct.Particle{
+		Transform: world.CreateBody(&bodyDef),
+		Size: 5,
+		Type: 0,
+		Lifetime: 5,
+		Owner: &ships[*ownerIndex],
+	}
+	worldLock.Unlock()
+	particles = append(particles,&laser)
+	sendParticleToClient(&laser)
 }
 
 //Contact listener
@@ -334,3 +384,10 @@ func (CollisionListener) PreSolve(contact box2d.B2ContactInterface,oldManifold b
 func (CollisionListener) PostSolve(contact box2d.B2ContactInterface,impulse *box2d.B2ContactImpulse){
 
 }
+
+//
+type contactListener struct {}
+func (contactListener) ReportFixture(){
+
+}
+
