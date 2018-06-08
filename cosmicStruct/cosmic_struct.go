@@ -76,6 +76,8 @@ type Particle struct {
 type ClientParticle struct {
 	X float64
 	Y float64
+	VX float64 //X Velocity
+	VY float64 //Y Velocity
 	Size int
 	Type int
 	Lifetime float64
@@ -162,6 +164,8 @@ func (particle *Particle) ToClientParticle() ClientParticle {
 	return ClientParticle{
 		X: particle.Transform.GetPosition().X,
 		Y: particle.Transform.GetPosition().Y,
+		VX: particle.Transform.M_linearVelocity.X,
+		VY: particle.Transform.M_linearVelocity.Y,
 		Size: particle.Size,
 		Lifetime: particle.Lifetime,
 		Type: particle.Type,

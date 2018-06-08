@@ -257,6 +257,7 @@ func updatePosition(deltaTime float64){
 	}
 	//Particles
 	for i,_ := range particles {
+		if i >= len(particles) {break}
 		particles[i].Lifetime -= deltaTime //Remove deltaTime from particle lifetime
 		if particles[i].Lifetime <= 0 { //If particle should be now 'dead'
 			//Remove particle body
@@ -342,6 +343,7 @@ func laserShot(position box2d.B2Vec2,angle float64,ownerIndex *int){
 		Lifetime: 5,
 		Owner: &ships[*ownerIndex],
 	}
+	laser.Transform.ApplyLinearImpulseToCenter(box2d.B2Vec2_zero,true) //Apply impulse to laser
 	worldLock.Unlock()
 	particles = append(particles,&laser)
 	sendParticleToClient(&laser)
