@@ -34,7 +34,7 @@ func LoadDatabases() {
 		return err
 	})}
 	go x()
-	
+
 	log.Println("Databases loaded")
 }
 
@@ -48,6 +48,7 @@ func UpdateHighscores(ships *[]cosmicStruct.PlayerShip) {
 			Date: time.Now(),
 		}
 		highScores := append(highScores,highScoreEntry)
+		_ = highScores //Workaround
 	}
 
 	//Update database
