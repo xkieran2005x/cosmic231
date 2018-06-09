@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"sync"
 	"os"
+	"cosmicio/cosmicDB"
 )
 
 //Variables
@@ -32,6 +33,7 @@ func main() {
 }
 
 func game() {
+	cosmicDB.LoadDatabases()
 	world.SetContactListener(CollisionListener{})
 	log.Println("Loading game server")
 
@@ -232,6 +234,8 @@ func updateTime(deltaTime float64){
 				world.DestroyBody(dust.Transform)
 			}
 			dust= dust[:0]
+			//Save hi-scores in database
+			cosmicDB.UpdateHighscores(&ships)
 			log.Println("Game ended")
 		}
 	}

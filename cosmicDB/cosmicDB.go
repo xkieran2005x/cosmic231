@@ -25,17 +25,17 @@ func LoadDatabases() {
 	})
 
 	//Make backup of database
-	x := func() {
+ 	x := func() {
 	mainDB.View(func (tx *bolt.Tx) error {
-		log.Println("Generating database backup")
+		log.Println("CosmicDB Generating database backup")
 		deleteFileIfExists("main.db.backup")
 		err := tx.CopyFile("main.db.backup",0600)
-		log.Println("Backup ended")
+		log.Println("CosmicDB Backup ended")
 		return err
 	})}
 	go x()
 
-	log.Println("Databases loaded")
+	log.Println("CosmicDB Databases loaded")
 }
 
 func UpdateHighscores(ships *[]cosmicStruct.PlayerShip) {
